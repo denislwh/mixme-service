@@ -26,7 +26,7 @@ app.post('/api/remove-bg', upload.single('image_file'), async (req, res) => {
         const response = await fetch('https://api.remove.bg/v1.0/removebg', {
             method: 'POST',
             headers: {
-                'X-Api-Key': 9PmhSWzF5ghiuFptY5eYD2qg,
+                'X-Api-Key': REMOVE_BG_API_KEY,
             },
             body: formData,
         });
@@ -49,7 +49,7 @@ app.post('/api/mix-style', async (req, res) => {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Api-Key': xBJacULxPof4Hmk5YFdGjHKoK3P4YJIf7wemcsBqpMt4tAVMEtplrwrRhOTm,
+                'Api-Key': STABLE_DIFFUSION_API_KEY,
             },
             body: JSON.stringify({
                 image: Buffer.from(req.body.image).toString('base64'),
