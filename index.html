@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Background Removal and Style Mixing</title>
+</head>
+<body>
+    <h1>Background Removal and Style Mixing</h1>
+    <form id="imageForm">
+        <input type="file" id="imageInput" name="image" accept="image/*">
+        <label for="promptInput">Prompt:</label>
+        <input type="text" id="promptInput" name="prompt" required>
+        <button type="submit" id="submitBtn">Submit</button>
+    </form>
+    <h2>Result</h2>
+    <img id="resultImg" src="" alt="Result" style="display: none; max-width: 100%;">
+    <a id="downloadBtn" href="" download="result.png" style="display: none;">Download Result</a>
+    <p id="errorMsg" style="display: none;">Error processing the image. Please try again.</p>
+
+    <script>
+        const form = document.getElementById('imageForm');
+        const imageInput = document.getElementById('imageInput');
+        const promptInput = document.getElementById('promptInput');
+        const submitBtn = document.getElementById('submitBtn');
+        const resultImg = document.getElementById('resultImg');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const errorMsg = document.getElementById('errorMsg');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!imageInput.files || !imageInput.files[0] || !promptInput.value.trim()) {
+                return;
+            }
+
+            submitBtn.disabled = true;
+            resultImg.style.display = 'none';
+            downloadBtn.style.display = 'none';
+            errorMsg.style.display = 'none';
+
+            try {
+                const formData = new FormData();
+                formData.append('image_file', imageInput.files[0]);
+                formData.append('size', 'auto');
+
+                const removeBgResponse = await fetch('/api/remove-bg', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!removeBgResponse.ok) {
+                    throw new Error('Error removing background.');
+                }
+
+                const blob = await removeBgResponse.blob();
+                const styleMixedResponse = await fetch('/api/mix-style', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        image: await blob.arrayBuffer(),
+                        prompt: promptInput.value.trim(),
+                    }),
+                });
+
+                if (!styleMixedResponse.ok) {
+                    throw new Error('Error mixing style.');
+                }
+
+                const resultBlob = await styleMixedResponse.blob();
+                const resultUrl = URL.createObjectURL(resultBlob);
+                resultImg.src = resultUrl;
+                resultImg.style.display = 'block';
+                downloadBtn.href = resultUrl;
+                downloadBtn.style.display = 'block';
+            } catch (error) {
+                console.error(error);
+                errorMsg.style.display = 'block';
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
