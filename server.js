@@ -73,6 +73,9 @@ app.post('/process-image', async (req, res) => {
     }
 });
 
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 app.listen(port, () => {
     console.log(`Server listening at http://localhost:${port}`);
