@@ -1,6 +1,6 @@
 const express = require('express');
 const multer = require('multer');
-import fetch from 'node-fetch';
+const fetch = require('node-fetch');
 const FormData = require('form-data');
 const cors = require('cors');
 const bodyParser = require('body-parser');
