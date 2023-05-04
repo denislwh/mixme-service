@@ -1,82 +1,81 @@
 const express = require('express');
+const multer = require('multer');
 const fetch = require('node-fetch');
 const FormData = require('form-data');
+const cors = require('cors');
+const bodyParser = require('body-parser');
 
 const app = express();
-const port = process.env.PORT || 3000;
+const upload = multer();
 
-const removeBgApiKey = '9PmhSWzF5ghiuFptY5eYD2qg';
-const stableDiffusionApiKey = 'xBJacULxPof4Hmk5YFdGjHKoK3P4YJIf7wemcsBqpMt4tAVMEtplrwrRhOTm';
+const REMOVE_BG_API_KEY = '9PmhSWzF5ghiuFptY5eYD2qg';
+const STABLE_DIFFUSION_API_KEY = 'xBJacULxPof4Hmk5YFdGjHKoK3P4YJIf7wemcsBqpMt4tAVMEtplrwrRhOTm';
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(cors());
+app.use(bodyParser.json({ limit: '10mb' }));
 
-app.get('/', (req, res) => {
-    res.send('Welcome to the Image Processing App');
-});
+app.use(express.static('public'));
 
-app.post('/process-image', async (req, res) => {
-    const imageUrl = req.body.imageUrl;
-    const prompt = req.body.prompt;
-
-    if (!imageUrl || !prompt) {
-        res.status(400).send('Missing required parameters: imageUrl and prompt');
-        return;
-    }
-
+app.post('/api/remove-bg', upload.single('image_file'), async (req, res) => {
     try {
-        // Remove background from image
-        const removeBgUrl = 'https://api.remove.bg/v1.0/removebg';
-        const response = await fetch(removeBgUrl, {
+        const formData = new FormData();
+        formData.append('image_file', req.file.buffer, { filename: 'image.png', contentType: 'image/png' });
+        formData.append('size', 'auto');
+
+        const response = await fetch('https://api.remove.bg/v1.0/removebg', {
             method: 'POST',
             headers: {
-                'X-Api-Key': removeBgApiKey,
+                'X-Api-Key': REMOVE_BG_API_KEY,
+            },
+            body: formData,
+        });
+
+        if (!response.ok) {
+            throw new Error('Error removing background.');
+        }
+
+        const blob = await response.buffer();
+        res.type('image/png').send(blob);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: 'Error processing the image.' });
+    }
+});
+
+app.post('/api/mix-style', async (req, res) => {
+    try {
+        const response = await fetch('https://stablediffusion.com/api/v2/mix', {
+            method: 'POST',
+            headers: {
                 'Content-Type': 'application/json',
+                'Api-Key': STABLE_DIFFUSION_API_KEY,
             },
             body: JSON.stringify({
-                image_url: imageUrl,
-                size: 'auto',
+                image: Buffer.from(req.body.image).toString('base64'),
+                prompt: req.body.prompt,
             }),
         });
 
         if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Error removing background. Status: ${response.status}. Response text: ${errorText}`);
+            throw new Error('Error mixing style.');
         }
 
-        const removedBgImageBuffer = await response.buffer();
-
-        // Use the Stable Diffusion API to mix the image
-        const stableDiffusionUrl = 'https://api.stablediffusion.com/v1/image';
-        const formData = new FormData();
-        formData.append('image', removedBgImageBuffer, { filename: 'image.png', contentType: 'image/png' });
-        formData.append('prompt', prompt);
-        formData.append('num_images', 1);
-        formData.append('api_key', stableDiffusionApiKey);
-
-        const mixedImageResponse = await fetch(stableDiffusionUrl, {
-            method: 'POST',
-            body: formData,
-            headers: formData.getHeaders(),
-        });
-
-        if (!mixedImageResponse.ok) {
-            const errorText = await mixedImageResponse.text();
-            throw new Error(`Error mixing image. Status: ${mixedImageResponse.status}. Response text: ${errorText}`);
-        }
-
-        const mixedImageBuffer = await mixedImageResponse.buffer();
-        res.set('Content-Type', 'image/png').send(mixedImageBuffer);
+        const result = await response.json();
+        const resultBuffer = Buffer.from(result.image, 'base64');
+        res.type('image/png').send(resultBuffer);
     } catch (error) {
         console.error(error);
-        res.status(500).send('Error processing the image.');
+        res.status(500).send({ message: 'Error processing the image.' });
     }
 });
+
+const path = require('path');
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-app.listen(port, () => {
-    console.log(`Server listening at http://localhost:${port}`);
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
 });
