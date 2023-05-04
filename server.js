@@ -8,8 +8,8 @@ const bodyParser = require('body-parser');
 const app = express();
 const upload = multer();
 
-const REMOVE_BG_API_KEY = 'YOUR_REMOVE_BG_API_KEY';
-const STABLE_DIFFUSION_API_KEY = 'YOUR_STABLE_DIFFUSION_API_KEY';
+const REMOVE_BG_API_KEY = '9PmhSWzF5ghiuFptY5eYD2qg';
+const STABLE_DIFFUSION_API_KEY = 'xBJacULxPof4Hmk5YFdGjHKoK3P4YJIf7wemcsBqpMt4tAVMEtplrwrRhOTm';
 
 app.use(cors());
 app.use(bodyParser.json({ limit: '10mb' }));
